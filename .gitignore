@@ -5,7 +5,13 @@
 *.c
 
 # ignore pyc files
-.pyc
+*.pyc
 
 # ignore data files
-.dat
+*.dat
+
+# other files by name
+new_curve
+LISA_sensitivity.txt
+.ipynb_checkpoints/
+.DS_Store

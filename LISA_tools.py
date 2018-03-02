@@ -329,7 +329,7 @@ def calculate_plot_source(m1, m2, constants, Dl=None, z=None, T_merger=None, f_s
 		np.savetxt(out_file,(np.vstack((f_start, h_c)).T), delimiter=' ')
 
 	plt.loglog(f, np.sqrt(f*Sn)) # plot the characteristic strain of noise
-
+	#%config InlineBackend.figure_format = 'retina'
 	plt.xlim(1.0e-5, 1.0e0)
 	plt.ylim(1.0e-22, 1.0e-15)
 	plt.tight_layout()
