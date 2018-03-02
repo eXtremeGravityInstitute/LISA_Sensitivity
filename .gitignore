@@ -1,0 +1,11 @@
+# ignore all C object files
+*.o
+
+# ignore any C files
+*.c
+
+# ignore pyc files
+.pyc
+
+# ignore data files
+.dat
