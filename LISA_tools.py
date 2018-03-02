@@ -1,5 +1,9 @@
+"""
+Tools...
+"""
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy import optimize
 
 """
 PhenomA coefficeints:
@@ -29,7 +33,7 @@ TSUN    = 4.92549232189886339689643862e-6 # mass of sun in seconds (G=C=1)
 MPC     = 3.08568025e22/C    # mega-Parsec in seconds
 
 
-def get_Sn(f, constants):
+def get_Sn(constants):
 	# constants = np.arrays([H0, Omega_m, L, f_star, Tobs, NC])
 	f_star = constants[3]
 	L      = constants[2]
@@ -42,7 +46,7 @@ def get_Sn(f, constants):
 	
 	Sn = get_Pn(f, f_star, L)/R + get_Sc_est(f, Tobs, NC)
 	
-	return Sn
+	return f, Sn
 
 def get_Sc_est(f, Tobs, NC):
     """
@@ -206,7 +210,7 @@ def get_h_char_track(f, f_start, f_end, M, eta, M_chirp, Dl, constants):
 		
 		
 	SNR = 0.
-	Sn = get_Sn(f, constants)
+	f, Sn = get_Sn(constants)
 	for i in range(arg_start, arg_end):
 		freq   = 0.5*(f[i] + f[i-1])
 		Sn_est = 0.5*(1./Sn[i] + 1./Sn[i-1])
@@ -216,7 +220,7 @@ def get_h_char_track(f, f_start, f_end, M, eta, M_chirp, Dl, constants):
 	return h_c_arr, SNR
     
     
-def get_h_char_point(f, f_start, f_end, M, eta, M_chirp, Dl, constants):
+def get_h_char_point(f_start, f_end, M, eta, M_chirp, Dl, constants):
 
 	# constants = np.arrays([H0, Omega_m, L, f_star, Tobs, NC])
 	f_star = constants[3]
@@ -231,6 +235,109 @@ def get_h_char_point(f, f_start, f_end, M, eta, M_chirp, Dl, constants):
         
 	return h_c, SNR
     
+"""
+Calculate the Characteristic strain of the source
+
+Inputs:
+    m1 - component mass 1, SOURCE FRAME!
+    m2 - component mass 2, SOURCE FRAME!
+    
+    Initial condition options (Specify one!)
+    --------------------------
+    T_merger - time to merger for source
+    f_start  - start frequency for source
+    
+    Distance options (Specify one!)
+    --------------------------
+    D_lum - Luminosity distance
+    z     - redshift
+"""
+
+def calculate_plot_source(m1, m2, constants, Dl=None, z=None, T_merger=None, f_start=None):
+	"""
+	Determine the appropriate way to plot the source, calculate its characteristic strain
+	and print the correpsonding SNR.
+	"""
+	# constants = np.arrays([H0, Omega_m, L, f_star, Tobs, NC])
+	Omega_m = constants[1]
+	H0      = constants[0]
+	Tobs    = constants[4]
+	NC      = constants[5]
+	L       = constants[2]
+	f_star  = constants[3]
+
+	f, Sn = get_Sn(constants)
+
+	""" Sort out the luminosity distance and redshift of the source """
+	if (Dl==None): # Z was specified, then we must calculate Dl
+		Dl = get_Dl(z, Omega_m, H0)
+	elif(z==None):
+		z = optimize.root(get_z, 1., args=(Dl, Omega_m, H0)).x[0]
+
+	""" Calculate relevant mass parameters """
+	m1 *= (1. + z) # redshift the source frame masses
+	m2 *= (1. + z)
+	M = m1 + m2                           # total mass
+	M_chirp = (m1*m2)**(3./5.)/M**(1./5.) # chirp mass
+	eta = (m1*m2)/M**2                    # symmetric mass ratio   
+
+	""" Calculate PhenomA cut-off frequency """
+	f3 = (a3*eta**2 + b3*eta + c3)/(np.pi*M) 
+
+	if (f_start==None): # T_merger was specified
+		f_start = (5.*M_chirp/T_merger)**(3./8.)/(8.*np.pi*M_chirp)
+	else: # f_start was specified, calculate time to merger for circular binary
+		T_merger = 5.*M_chirp/(8.*np.pi*f_start*M_chirp)**(8./3.)
+
+	""" Determine the ending frequency of this source """
+	if (T_merger > Tobs):
+		f_end = (5.*M_chirp/(np.abs(Tobs-T_merger)))**(3./8.)/(8.*np.pi*M_chirp)
+	elif (T_merger <= Tobs):
+		f_end = f3
+
+	""" Plot the results """
+	plt.figure(figsize=(8,6))
+	plt.rcParams['text.usetex'] = True
+	plt.ion()
+	plt.rc('text', usetex=True)
+	plt.rc('font', family='calibri')
+	plt.xlabel(r'$f ~[Hz]$', fontsize=20, labelpad=10)
+	plt.ylabel(r'Characteristic Strain$', fontsize=20, labelpad=10)
+	plt.tick_params(axis='both', which='major', labelsize=20)
+
+	# How much log bandwidth does the source span
+	d_log_f = np.log(f_end/f_start)
+
+	if (d_log_f > 0.5): # plot a track
+		h_c_arr, SNR = get_h_char_track(f, f_start, f_end, M, eta, M_chirp, Dl, constants)
+
+		plt.loglog(f, h_c_arr) 
+		title = 'Track SNR: ' + str(SNR)
+		plt.title(title, fontsize=20)
+
+		out_file = 'char_signal_strain.dat'
+		np.savetxt(out_file,(np.vstack((f, h_c_arr)).T), delimiter=' ')
+
+	else: # track is too short, plot a point
+		h_c, SNR = get_h_char_point(f_start, f_end, M, eta, M_chirp, Dl, constants)
+
+		plt.loglog(f_start, h_c, 'r.')
+		title = 'Point SNR: ' + str(SNR)
+		plt.title(title, fontsize=20)
+
+		out_file = 'char_signal_strain.dat'
+		np.savetxt(out_file,(np.vstack((f_start, h_c)).T), delimiter=' ')
+
+	plt.loglog(f, np.sqrt(f*Sn)) # plot the characteristic strain of noise
+
+	plt.xlim(1.0e-5, 1.0e0)
+	plt.ylim(1.0e-22, 1.0e-15)
+	plt.tight_layout()
+	plt.tick_params(labelsize=20)
+
+	plt.show()
+
+	return None
     
     
     
