@@ -72,7 +72,7 @@ def calc_k_dot_r(k, rij):
 
     return k_dot_r
     
-def get_XX_TDI(OBJ, lisa, f, Aeff, theta, phi):
+def get_XX_TDI(OBJ, lisa, f, Aeff, theta, phi, iota):
     """ Construct cos(\iota) and \psi averaged Michelson-equivalent TDI response """
      
     N = len(f)       
@@ -122,28 +122,49 @@ def get_XX_TDI(OBJ, lisa, f, Aeff, theta, phi):
     Trans13 = 0.5*np.sinc(TransArg13/np.pi)*np.exp(1j*TransArg13)*np.exp(1j*2*np.pi*f*np.dot(k,x[:,0,:])/C)
     Trans31 = 0.5*np.sinc(TransArg31/np.pi)*np.exp(1j*TransArg31)*np.exp(1j*2*np.pi*f*np.dot(k,x[:,2,:])/C)
 
-    # iota = pi/2, psi = 0
-    y12_a = Trans12*Aeff*0.5*dp12/2
-    y21_a = Trans21*Aeff*0.5*dp21/2
-    y13_a = Trans13*Aeff*0.5*dp13/2
-    y31_a = Trans31*Aeff*0.5*dp31/2          
+    if (iota == None):
+        # iota = pi/2, psi = 0
+        y12_a = Trans12*Aeff*0.5*dp12/2
+        y21_a = Trans21*Aeff*0.5*dp21/2
+        y13_a = Trans13*Aeff*0.5*dp13/2
+        y31_a = Trans31*Aeff*0.5*dp31/2
+        
+    else:
+        y12_a = 0.5*Trans12*Aeff*(0.5*(1 + np.cos(iota)**2)*dp12 + 1j*np.cos(iota)*dc12)
+        y21_a = 0.5*Trans21*Aeff*(0.5*(1 + np.cos(iota)**2)*dp21 + 1j*np.cos(iota)*dc21)
+        y13_a = 0.5*Trans13*Aeff*(0.5*(1 + np.cos(iota)**2)*dp13 + 1j*np.cos(iota)*dc13)
+        y31_a = 0.5*Trans31*Aeff*(0.5*(1 + np.cos(iota)**2)*dp31 + 1j*np.cos(iota)*dc31)
+        
     X_TDI = (y12_a - y13_a)*np.exp(-1j*f/lisa.fstar) + (y12_a - y13_a)
     
-    XX_TDI = 8./5*np.abs(X_TDI)**2
-    
-    # iota = pi/2, psi = pi/4
-    y12_a = Trans12*Aeff*0.5*dc12/2
-    y21_a = Trans21*Aeff*0.5*dc21/2
-    y13_a = Trans13*Aeff*0.5*dc13/2
-    y31_a = Trans31*Aeff*0.5*dc31/2
-                                    
+    if (iota == None):
+        XX_TDI = 8./5*np.abs(X_TDI)**2
+    else:
+        XX_TDI = 1./2*np.abs(X_TDI)**2
+
+
+    if (iota == None):
+        # iota = pi/2, psi = pi/4
+        y12_a = Trans12*Aeff*0.5*dc12/2
+        y21_a = Trans21*Aeff*0.5*dc21/2
+        y13_a = Trans13*Aeff*0.5*dc13/2
+        y31_a = Trans31*Aeff*0.5*dc31/2
+    else:
+        y12_a = 0.5*Trans12*Aeff*(-0.5*(1 + np.cos(iota)**2)*dc12 + 1j*np.cos(iota)*dp12)
+        y21_a = 0.5*Trans21*Aeff*(-0.5*(1 + np.cos(iota)**2)*dc21 + 1j*np.cos(iota)*dp21)
+        y13_a = 0.5*Trans13*Aeff*(-0.5*(1 + np.cos(iota)**2)*dc13 + 1j*np.cos(iota)*dp13)
+        y31_a = 0.5*Trans31*Aeff*(-0.5*(1 + np.cos(iota)**2)*dc31 + 1j*np.cos(iota)*dp31)
+
     X_TDI = (y12_a - y13_a)*np.exp(-1j*f/lisa.fstar) + (y12_a - y13_a)
     
-    XX_TDI += 8./5*np.abs(X_TDI)**2
+    if (iota == None):
+        XX_TDI += 8./5*np.abs(X_TDI)**2
+    else:
+        XX_TDI += 1./2*np.abs(X_TDI)**2
     
     return XX_TDI    
     
-def CalcStrain(self, lisa, theta=None, phi=None):
+def CalcStrain(self, lisa, theta=None, phi=None, iota=None):
     """ Calculate the characteristic GW strain """
     
     Delta_logf = np.log(self.f_end) - np.log(self.f_start)
@@ -161,7 +182,7 @@ def CalcStrain(self, lisa, theta=None, phi=None):
         else: # Generate X Michelson channel
             self.Figure_Type = 'track_sky_dependent'
 
-            XX_TDI  = get_XX_TDI(self, lisa, f, Aeff, theta, phi)
+            XX_TDI  = get_XX_TDI(self, lisa, f, Aeff, theta, phi, iota)
             
             X_char = np.sqrt(4*f*XX_TDI)
             
@@ -181,7 +202,7 @@ def CalcStrain(self, lisa, theta=None, phi=None):
 
             self.Figure_Type = 'point_sky_dependent'
             
-            XX_TDI  = get_XX_TDI(self, lisa, f, Aeff, theta, phi)
+            XX_TDI  = get_XX_TDI(self, lisa, f, Aeff, theta, phi, iota)
         
             X_char = np.sqrt(4*XX_TDI*np.sqrt(f)*(self.f_end - f))
     
