@@ -10,12 +10,12 @@ c = np.array([9.5560e-2, 1.9111e-1, 2.2369e-2, 2.7299e-1])
 # PhenomA, phase coefficients
 x = np.array([1.7516e-1, 0., -5.1571e1, 6.5866e2, -3.9031e3, 0., -2.4874e4, 2.5196e4])
 y = np.array([7.9483e-2, 0., -1.7595e1, 1.7803e2, -7.7493e2, 0., -1.4892e3, 3.3970e2])
-z = np.array([-7.2390e-2, 0., 1.3253e1, -1.5972e2, 8.8195e2, 0., 4.4588e3, -3.9573])
+z = np.array([-7.2390e-2, 0., 1.3253e1, -1.5972e2, 8.8195e2, 0., 4.4588e3, -3.9573e3])
 
 
 def Lorentzian(f, f_ring, sigma):
     """ """ 
-    return sigma/(2*np.pi)/( (f-f_ring)**2 + 0.24*sigma**2 )
+    return sigma/(2*np.pi)/( (f-f_ring)**2 + 0.25*sigma**2 )
     
     
 def get_freq(M, eta, name):
