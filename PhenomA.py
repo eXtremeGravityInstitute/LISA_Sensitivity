@@ -63,7 +63,7 @@ def Psieff(f, M, eta, t0, phi0):
     
     result = 0.0
     
-    for i in range(7):
+    for i in range(8):
         result += (x[i]*eta**2 + y[i]*eta + z[i])*(np.pi*M*f)**((i-5.)/3.)
         
     return 2*np.pi*f*t0 + phi0 + result/eta
@@ -73,7 +73,7 @@ def dPsieff_df(f, M, eta, t0):
     
     result = 0.0
     
-    for i in range(7):
+    for i in range(8):
         result += ((i-5.)/3.)*(x[i]*eta**2 + y[i]*eta + z[i])*(np.pi*M)**((i-5.)/3.)*f**((i-5.)/3. - 1)
     
     return 2*np.pi*t0 + result/eta
